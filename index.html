@@ -21,6 +21,10 @@
             margin: 20px auto;
             cursor: pointer;
             transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
         }
         .cookie:active {
             transform: scale(0.95);
@@ -29,57 +33,110 @@
             font-size: 24px;
             margin: 20px 0;
         }
+        .user-info {
+            font-size: 18px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        .save-btn {
+            background: var(--tg-theme-button-color, #007bff);
+            color: var(--tg-theme-button-text-color, white);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>🍪 Cookie Clicker</h1>
+    <div class="user-info">Player: <span id="username">Loading...</span></div>
     <div class="score">Cookies: <span id="cookieCount">0</span></div>
-    <div class="cookie" id="cookie"></div>
-    <button id="shareScore">Share Score</button>
+    <div class="cookie" id="cookie">🍪</div>
+    <button class="save-btn" id="saveData">💾 Save Progress</button>
+    <button class="save-btn" id="shareScore">📤 Share Score</button>
     
     <script>
         let cookies = 0;
+        let username = '';
         const cookieElement = document.getElementById('cookie');
         const cookieCountElement = document.getElementById('cookieCount');
+        const usernameElement = document.getElementById('username');
+        const saveButton = document.getElementById('saveData');
         const shareButton = document.getElementById('shareScore');
         
         // Initialize Telegram Web App
         const tg = window.Telegram.WebApp;
         tg.ready();
         
-        // Load saved progress
-        const savedCookies = localStorage.getItem('cookies');
-        if (savedCookies) {
-            cookies = parseInt(savedCookies);
-            cookieCountElement.textContent = cookies;
+        // Get URL parameters (username and initial cookie count)
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
         }
         
+        // Initialize user data from URL parameters
+        username = getUrlParameter('username') || 'anonymous';
+        const initialCookies = parseInt(getUrlParameter('cookies')) || 0;
+        
+        cookies = initialCookies;
+        usernameElement.textContent = username;
+        cookieCountElement.textContent = cookies;
+        
+        // Cookie clicking functionality
         cookieElement.addEventListener('click', () => {
             cookies++;
             cookieCountElement.textContent = cookies;
-            localStorage.setItem('cookies', cookies);
             
             // Haptic feedback
             if (tg.HapticFeedback) {
                 tg.HapticFeedback.impactOccurred('light');
             }
+            
+            // Auto-save every 10 clicks
+            if (cookies % 10 === 0) {
+                saveProgress();
+            }
         });
         
+        // Save progress function
+        function saveProgress() {
+            tg.sendData(JSON.stringify({
+                action: 'save_cookies',
+                cookies: cookies,
+                username: username
+            }));
+        }
+        
+        // Save button
+        saveButton.addEventListener('click', saveProgress);
+        
+        // Share button
         shareButton.addEventListener('click', () => {
             const message = `I just clicked ${cookies} cookies! 🍪`;
             tg.sendData(JSON.stringify({
                 action: 'share_score',
                 cookies: cookies,
-                message: message
+                message: message,
+                username: username
             }));
         });
         
         // Handle main button
-        tg.MainButton.text = "Share Score";
+        tg.MainButton.text = "Save Progress";
         tg.MainButton.show();
         tg.MainButton.onClick(() => {
-            shareButton.click();
+            saveProgress();
         });
+        
+        // Save progress when leaving the app
+        window.addEventListener('beforeunload', () => {
+            saveProgress();
+        });
+        
+        // Auto-save every 30 seconds
+        setInterval(saveProgress, 30000);
     </script>
 </body>
 </html>
