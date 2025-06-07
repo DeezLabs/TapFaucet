@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Clicker</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .cookie {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #8B4513;
+            margin: 20px auto;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .cookie:active {
+            transform: scale(0.95);
+        }
+        .score {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🍪 Cookie Clicker</h1>
+    <div class="score">Cookies: <span id="cookieCount">0</span></div>
+    <div class="cookie" id="cookie"></div>
+    <button id="shareScore">Share Score</button>
+    
+    <script>
+        let cookies = 0;
+        const cookieElement = document.getElementById('cookie');
+        const cookieCountElement = document.getElementById('cookieCount');
+        const shareButton = document.getElementById('shareScore');
+        
+        // Initialize Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        
+        // Load saved progress
+        const savedCookies = localStorage.getItem('cookies');
+        if (savedCookies) {
+            cookies = parseInt(savedCookies);
+            cookieCountElement.textContent = cookies;
+        }
+        
+        cookieElement.addEventListener('click', () => {
+            cookies++;
+            cookieCountElement.textContent = cookies;
+            localStorage.setItem('cookies', cookies);
+            
+            // Haptic feedback
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        });
+        
+        shareButton.addEventListener('click', () => {
+            const message = `I just clicked ${cookies} cookies! 🍪`;
+            tg.sendData(JSON.stringify({
+                action: 'share_score',
+                cookies: cookies,
+                message: message
+            }));
+        });
+        
+        // Handle main button
+        tg.MainButton.text = "Share Score";
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => {
+            shareButton.click();
+        });
+    </script>
+</body>
+</html>
